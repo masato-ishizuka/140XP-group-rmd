@@ -1,0 +1,56 @@
+---
+title: "140XP group assignment"
+author: "Shune Kawaoto"
+date: "`r Sys.Date()`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Initial cleanup of the data
+```{r cars}
+data <- read.csv("newdata.csv")
+zes <- read.csv("lighting_tall.csv")
+library(tidyverse)
+library(caret)
+library(randomForest)
+zes <- zes %>% separate(subjectLighting, into=c("Subject", "Lighting"), sep=1)
+```
+
+
+# Setting up the data
+```{r}
+summary(data$Duration..in.seconds.)
+zes <- cbind(zes, data$LocationLatitude, data$LocationLongitude, data$Duration..in.seconds.)
+zes <- zes %>% rename('LocationLatitude' = 'data$LocationLatitude',
+               'LocationLongitude' = 'data$LocationLongitude',
+               'Duration' = 'data$Duration..in.seconds.')
+zes <- zes[,c(-1,-2)]
+summary(zes)
+```
+
+
+# Model 1 - Basic lm after converting everying to numerical/factor
+```{r}
+zes1 <- zes
+zes1$Sex <- as.factor(zes1$Sex)
+zes1$Subject <- as.factor(zes1$Subject)
+zes1$Lighting <- as.factor(zes1$Lighting)
+m1 <- lm(rating ~ ., data=zes1)
+m1_reduced <- step(m1, direction = "both")
+summary(m1_reduced) # r2 = .2799
+```
+
+
+# Model 2 - Throw everything into a random forest regression
+```{r}
+set.seed(123)
+m2 <- randomForest(rating ~ ., data=zes, ntree = 500, importance=TRUE, keep.forest=FALSE, mtry = 5, type="regression")
+summary(m2)
+m2 # r2 = .3194
+```
